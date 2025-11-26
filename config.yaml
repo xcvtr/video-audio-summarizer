@@ -1,0 +1,22 @@
+vosk:
+  model_path: "./vosk/model-ru"
+  
+audio:
+  format: "wav"
+  sample_rate: 16000
+  channels: 1
+
+screenshots:
+  format: "jpg"
+  quality: 95
+
+keywords:
+  triggers:
+    - "на слайде"
+    - "важно"
+    - "обратите внимание"
+    - "ключевой момент"
+    - "запомните"
+
+output:
+  base_dir: "./output"
