@@ -26,6 +26,10 @@ class Config:
     screenshot_format: str = "jpg"
     screenshot_quality: int = 95
     keyword_triggers: List[str] = field(default_factory=list)
+    # Новые поля для серверного режима
+    vosk_mode: str = "local"  # "local" или "server"
+    vosk_server_url: str = "http://127.0.0.1:8000"
+    vosk_server_timeout: int = 300
     
     def __post_init__(self):
         """Post-initialization to resolve relative paths."""
@@ -132,8 +136,10 @@ class Config:
         
         # Extract configuration values
         try:
+            vosk_config = yaml_config.get('vosk', {})
+            
             config = cls(
-                vosk_model_path=yaml_config['vosk']['model_path'],
+                vosk_model_path=vosk_config.get('model_path', './vosk/model-ru'),
                 deepseek_api_key=api_key,
                 output_base_dir=yaml_config['output']['base_dir'],
                 audio_format=yaml_config.get('audio', {}).get('format', 'wav'),
@@ -141,7 +147,11 @@ class Config:
                 audio_channels=yaml_config.get('audio', {}).get('channels', 1),
                 screenshot_format=yaml_config.get('screenshots', {}).get('format', 'jpg'),
                 screenshot_quality=yaml_config.get('screenshots', {}).get('quality', 95),
-                keyword_triggers=yaml_config.get('keywords', {}).get('triggers', [])
+                keyword_triggers=yaml_config.get('keywords', {}).get('triggers', []),
+                # Новые настройки
+                vosk_mode=vosk_config.get('mode', 'local'),
+                vosk_server_url=vosk_config.get('server', {}).get('url', 'http://127.0.0.1:8000'),
+                vosk_server_timeout=vosk_config.get('server', {}).get('timeout', 300)
             )
         except KeyError as e:
             raise ConfigurationError(f"Missing required configuration key: {e}")

@@ -255,7 +255,10 @@ pytest tests/test_*_properties.py
 │   ├── config.py               # Управление конфигурацией
 │   ├── models.py               # Модели данных
 │   ├── audio_extractor.py      # Извлечение аудио
-│   ├── speech_recognizer.py    # Распознавание речи
+│   ├── speech_recognizer.py    # Распознавание речи (локальный режим)
+│   ├── speech_recognizer_client.py # Клиент для серверного режима
+│   ├── vosk_server.py          # Сервер VOSK
+│   ├── vosk_client.py          # Клиент VOSK
 │   ├── keyword_detector.py     # Определение ключевых слов
 │   ├── ai_summarizer.py        # AI суммаризация
 │   ├── screenshot_capturer.py  # Создание скриншотов
@@ -266,8 +269,66 @@ pytest tests/test_*_properties.py
 ├── config.yaml                 # Конфигурация
 ├── .env.example                # Пример файла с секретами
 ├── requirements.txt            # Зависимости Python
+├── avsum.cmd                   # Скрипт запуска из любой директории
+├── avsum.ps1                   # PowerShell скрипт
+├── run_vosk_server.cmd         # Скрипт запуска сервера VOSK
+├── run_vosk_client.cmd         # Скрипт запуска клиента VOSK
 └── README.md                   # Этот файл
 ```
+
+## Сервер-клиент архитектура (опционально)
+
+Для ускорения обработки при работе с несколькими файлами можно использовать сервер-клиент архитектуру, где модель VOSK загружается один раз при запуске сервера.
+
+### Запуск сервера VOSK
+
+```bash
+# Запуск сервера с моделью по умолчанию
+python -m src.vosk_server
+
+# Или с указанием параметров
+python -m src.vosk_server --model-path ./vosk/model-ru --host 127.0.0.1 --port 8000
+
+# Используя скрипт
+run_vosk_server.cmd
+```
+
+### Использование клиента
+
+```bash
+# Проверка состояния сервера
+python -m src.vosk_client --server http://127.0.0.1:8000 --check-health
+
+# Транскрипция аудиофайла
+python -m src.vosk_client --server http://127.0.0.1:8000 --audio-file audio.wav --output transcript.md
+
+# Используя скрипт
+run_vosk_client.cmd --audio-file audio.wav
+```
+
+### Настройка серверного режима в конфигурации
+
+Измените `config.yaml` для использования серверного режима:
+
+```yaml
+vosk:
+  model_path: "./vosk/model-ru"
+  # Режим работы: "local" - локальная модель, "server" - через сервер
+  mode: "server"
+  # Настройки для серверного режима
+  server:
+    url: "http://127.0.0.1:8000"
+    timeout: 300  # секунды
+```
+
+### API сервера
+
+Сервер предоставляет следующие эндпоинты:
+
+- `GET /health` - проверка состояния сервера
+- `GET /model-info` - информация о загруженной модели
+- `POST /transcribe` - транскрипция аудиофайла (WAV формат)
+- `POST /transcribe-file` - транскрипция файла по локальному пути
 
 ## Лицензия
 

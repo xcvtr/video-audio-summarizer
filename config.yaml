@@ -1,6 +1,12 @@
 vosk:
   model_path: "./vosk/model-ru"
-  
+  # Режим работы: "local" - локальная модель, "server" - через сервер
+  mode: "local"
+  # Настройки для серверного режима
+  server:
+    url: "http://127.0.0.1:8000"
+    timeout: 300  # секунды
+
 audio:
   format: "wav"
   sample_rate: 16000

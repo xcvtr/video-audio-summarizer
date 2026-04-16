@@ -33,7 +33,26 @@ class VideoProcessor:
         
         # Initialize components
         self.audio_extractor = AudioExtractor(config)
-        self.speech_recognizer = SpeechRecognizer(config.vosk_model_path)
+        
+        # Инициализация распознавателя речи в зависимости от режима
+        if config.vosk_mode == "server":
+            from src.speech_recognizer_client import SpeechRecognizerClient
+            try:
+                self.speech_recognizer = SpeechRecognizerClient(
+                    server_url=config.vosk_server_url,
+                    timeout=config.vosk_server_timeout
+                )
+                self.console.print(f"[green]✓[/green] Используется серверный режим VOSK: {config.vosk_server_url}")
+            except Exception as e:
+                self.console.print(f"[yellow]⚠[/yellow] Не удалось подключиться к серверу VOSK: {e}")
+                self.console.print("[yellow]⚠[/yellow] Переключение на локальный режим...")
+                from src.speech_recognizer import SpeechRecognizer
+                self.speech_recognizer = SpeechRecognizer(config.vosk_model_path)
+        else:
+            from src.speech_recognizer import SpeechRecognizer
+            self.speech_recognizer = SpeechRecognizer(config.vosk_model_path)
+            self.console.print(f"[green]✓[/green] Используется локальный режим VOSK")
+        
         self.keyword_detector = KeywordDetector(config.keyword_triggers)
         self.ai_summarizer = AISummarizer(config.deepseek_api_key)
         self.screenshot_capturer = ScreenshotCapturer(config)

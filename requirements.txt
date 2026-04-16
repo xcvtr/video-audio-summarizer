@@ -10,3 +10,8 @@ pytest>=7.0.0
 pytest-mock>=3.0.0
 pytest-cov>=4.0.0
 responses>=0.23.0
+# Новые зависимости для сервер-клиент архитектуры
+fastapi>=0.104.0
+uvicorn>=0.24.0
+requests>=2.31.0
+pydantic>=2.4.0
