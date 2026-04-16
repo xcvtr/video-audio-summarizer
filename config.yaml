@@ -1,5 +1,5 @@
 vosk:
-  model_path: "./vosk/model-ru"
+  model_path: "./vosk/model-ru-large"
   
 audio:
   format: "wav"

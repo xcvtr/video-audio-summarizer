@@ -41,6 +41,7 @@ htmlcov/
 
 # Output
 output/
+input
 
 # Models
 models/
