@@ -114,7 +114,7 @@ class VideoProcessor:
                 
                 try:
                     transcript = self.speech_recognizer.transcribe(str(audio_path), progress_callback=update_progress)
-                    transcript_path = output_dir / "transcript.txt"
+                    transcript_path = output_dir / "transcript.md"
                     self.speech_recognizer.save_transcript(transcript, str(transcript_path))
                     result.transcript_path = transcript_path
                     progress.update(task, completed=100)
@@ -285,7 +285,7 @@ class VideoProcessor:
                 
                 try:
                     transcript = self.speech_recognizer.transcribe(str(temp_wav), progress_callback=update_progress)
-                    transcript_path = audio_dir / f"{audio_name}.txt"
+                    transcript_path = audio_dir / f"{audio_name}.md"
                     self.speech_recognizer.save_transcript(transcript, str(transcript_path))
                     result.transcript_path = transcript_path
                     progress.update(task, completed=100)
@@ -569,15 +569,21 @@ class VideoProcessor:
         self.console.print(f"[cyan]Loading existing transcript from:[/cyan] {results_dir}")
         
         # Read existing transcript
-        transcript_path = results_path / "transcript.txt"
+        transcript_path = results_path / "transcript.md"
         if not transcript_path.exists():
-            self.console.print(f"[red]✗[/red] Transcript file not found: {transcript_path}")
-            return ProcessingResult(
-                video_path=video_path,
-                output_dir=results_path,
-                success=False,
-                error="Transcript file not found"
-            )
+            # Try old .txt format for backward compatibility
+            old_transcript_path = results_path / "transcript.txt"
+            if old_transcript_path.exists():
+                transcript_path = old_transcript_path
+                self.console.print(f"[yellow]⚠[/yellow] Using old .txt transcript format: {transcript_path}")
+            else:
+                self.console.print(f"[red]✗[/red] Transcript file not found: {transcript_path}")
+                return ProcessingResult(
+                    video_path=video_path,
+                    output_dir=results_path,
+                    success=False,
+                    error="Transcript file not found"
+                )
         
         # Load transcript
         try:

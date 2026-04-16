@@ -164,18 +164,23 @@ class SpeechRecognizer:
     
     def save_transcript(self, segments: List[TranscriptSegment], output_path: str) -> None:
         """Save transcript to file with timestamps.
-        
+
         Args:
             segments: List of transcript segments
             output_path: Path for output file
         """
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
+            # Write Markdown header
+            f.write("# Transcript\n\n")
+            f.write("## Segments with timestamps\n\n")
+            
             for segment in segments:
                 timestamp = segment.get_start_timestamp()
-                f.write(f"[{timestamp}] {segment.text}\n")
+                # Format as markdown list item with timestamp
+                f.write(f"- **[{timestamp}]** {segment.text}\n")
     
     def load_transcript(self, transcript_path: str) -> List[TranscriptSegment]:
         """Load transcript from file.
@@ -203,13 +208,22 @@ class SpeechRecognizer:
                     line = line.strip()
                     if not line:
                         continue
+
+                    # Skip markdown headers
+                    if line.startswith('#') or line.startswith('##'):
+                        continue
                     
-                    # Parse format: [HH:MM:SS] text
-                    match = re.match(r'\[(\d{2}):(\d{2}):(\d{2})\]\s*(.+)', line)
+                    # Parse markdown format: - **[HH:MM:SS]** text
+                    # Also support old format: [HH:MM:SS] text
+                    match = re.match(r'(?:-\s*\*\*)?\[(\d{2}):(\d{2}):(\d{2})\]\*\*\s*(.+)', line)
+                    if not match:
+                        # Try old format without markdown
+                        match = re.match(r'\[(\d{2}):(\d{2}):(\d{2})\]\s*(.+)', line)
+                    
                     if match:
                         hours, minutes, seconds, text = match.groups()
                         start_time = int(hours) * 3600 + int(minutes) * 60 + int(seconds)
-                        
+
                         # Estimate end time (start of next segment or +3 seconds)
                         end_time = start_time + 3.0
                         

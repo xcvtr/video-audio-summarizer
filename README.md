@@ -118,7 +118,7 @@ python main.py video1.mp4 audio1.mp3 video2.mkv audio2.wav
 ```bash
 python main.py video.mp4 --reprocess-ai "путь/к/папке_summary"
 ```
-- Загружает существующий transcript.txt
+- Загружает существующий transcript.md (или transcript.txt для обратной совместимости)
 - Генерирует улучшенное AI резюме (3-5 самых важных моментов)
 - Создает новые скриншоты
 - Обновляет summary.md
@@ -173,7 +173,7 @@ python main.py *.mp4 *.mp3
     │   ├── 00_05_23.jpg       # Скриншоты ключевых моментов
     │   ├── 00_11_25.jpg
     │   └── ...
-    ├── transcript.txt          # Полная транскрипция с временными метками
+    ├── transcript.md          # Полная транскрипция с временными метками в формате Markdown
     └── summary.md              # Итоговое резюме в Markdown
 ```
 
