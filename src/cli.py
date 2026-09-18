@@ -92,7 +92,7 @@ def main() -> int:
         if args.output_dir:
             config.output_base_dir = args.output_dir
         
-        console.print("[green]✓[/green] Configuration loaded successfully")
+        console.print("[green][OK][/green] Configuration loaded successfully")
         
         # Initialize processor
         console.print("[cyan]Initializing video processor...[/cyan]")
@@ -102,7 +102,7 @@ def main() -> int:
             console.print(f"[bold red]Initialization Error:[/bold red] {e}")
             return 1
         
-        console.print("[green]✓[/green] Processor initialized")
+        console.print("[green][OK][/green] Processor initialized")
         
         # Check for debug mode
         if args.debug_screenshots:

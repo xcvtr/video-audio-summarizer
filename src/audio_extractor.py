@@ -70,13 +70,15 @@ class AudioExtractor:
             return output_file
             
         except subprocess.CalledProcessError as e:
+            # Decode stderr with error handling for non-UTF8 characters
+            stderr_str = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else str(e.stderr)
             # Check if error is due to missing audio track
-            if "does not contain any stream" in str(e.stderr) or \
-               "Output file is empty" in str(e.stderr):
+            if "does not contain any stream" in stderr_str or \
+               "Output file is empty" in stderr_str:
                 raise AudioExtractionError(
                     f"Video file '{video_path}' does not contain an audio track"
                 )
-            raise AudioExtractionError(f"Failed to extract audio: {e}")
+            raise AudioExtractionError(f"Failed to extract audio: {stderr_str}")
         except Exception as e:
             raise AudioExtractionError(f"Failed to extract audio: {e}")
     
@@ -95,9 +97,10 @@ class AudioExtractor:
         """
         try:
             # FFmpeg command to extract audio and convert to VOSK format
+            # Use audio codec copy first to extract, then convert
             # -i: input file
             # -vn: no video
-            # -acodec pcm_s16le: PCM 16-bit little-endian codec
+            # -acodec: audio codec
             # -ar: audio sample rate
             # -ac: audio channels
             # -y: overwrite output file
@@ -105,7 +108,7 @@ class AudioExtractor:
                 "ffmpeg",
                 "-i", audio_path,
                 "-vn",  # No video
-                "-acodec", "pcm_s16le",  # PCM 16-bit
+                "-acodec", "pcm_s16le",  # PCM 16-bit little-endian
                 "-ar", str(self.config.audio_sample_rate),  # Sample rate
                 "-ac", str(self.config.audio_channels),  # Channels (mono)
                 "-y",  # Overwrite
@@ -116,15 +119,39 @@ class AudioExtractor:
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 check=True
             )
             
             return Path(output_path)
             
         except subprocess.CalledProcessError as e:
-            raise AudioExtractionError(
-                f"FFmpeg conversion failed: {e.stderr}"
-            )
+            # Try alternative approach: extract audio stream first
+            try:
+                cmd_fallback = [
+                    "ffmpeg",
+                    "-i", audio_path,
+                    "-vn",
+                    "-acodec", "libmp3lame",
+                    "-ar", str(self.config.audio_sample_rate),
+                    "-ac", str(self.config.audio_channels),
+                    "-y",
+                    output_path
+                ]
+                result = subprocess.run(
+                    cmd_fallback,
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace',
+                    check=True
+                )
+                return Path(output_path)
+            except subprocess.CalledProcessError as e2:
+                raise AudioExtractionError(
+                    f"FFmpeg conversion failed: {e2.stderr}"
+                )
     
     def convert_to_mp3(self, wav_path: str, video_name: str) -> Path:
         """Convert WAV to MP3 and delete WAV file.
@@ -165,6 +192,8 @@ class AudioExtractor:
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 check=True
             )
             
@@ -176,6 +205,7 @@ class AudioExtractor:
                 raise AudioExtractionError("MP3 file was not created or is empty")
             
         except subprocess.CalledProcessError as e:
+            stderr_str = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else str(e.stderr)
             raise AudioExtractionError(
-                f"MP3 conversion failed: {e.stderr}"
+                f"MP3 conversion failed: {stderr_str}"
             )

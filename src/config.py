@@ -30,6 +30,10 @@ class Config:
     vosk_mode: str = "local"  # "local" или "server"
     vosk_server_url: str = "http://127.0.0.1:8000"
     vosk_server_timeout: int = 300
+    # AI model for SprutDock
+    ai_model: str = "nex-agi/nex-n2.5-mini:free"
+    # Base URL OpenAI-совместимого API
+    ai_base_url: str = "https://sprutdock.ru/v1"
     
     def __post_init__(self):
         """Post-initialization to resolve relative paths."""
@@ -110,13 +114,21 @@ class Config:
             print(f"Loaded .env from: {env_path}")
 
         # Check for API key
-        api_key = os.getenv("DEEPSEEK_API_KEY")
+        api_key = (
+            os.getenv("API_KEY")
+            or os.getenv("SPRUTDOCK_API_KEY")
+            or os.getenv("DEEPSEEK_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
+        )
         if not api_key:
             raise ConfigurationError(
-                "DEEPSEEK_API_KEY not found in .env file. "
-                "Please create a .env file with your DeepSeek API key. "
+                "API_KEY (or SPRUTDOCK_API_KEY / DEEPSEEK_API_KEY / OPENROUTER_API_KEY) not found in .env file. "
+                "Please create a .env file with your API key. "
                 "See .env.example for reference."
             )
+        
+        # DEBUG: Print API key (first 10 chars)
+        print(f"[DEBUG] API key loaded: {api_key[:10]}...")
 
         # Load YAML config
         if not config_file.exists():
@@ -139,7 +151,7 @@ class Config:
             vosk_config = yaml_config.get('vosk', {})
             
             config = cls(
-                vosk_model_path=vosk_config.get('model_path', './vosk/model-ru'),
+                vosk_model_path=vosk_config.get('model_path', './vosk/model-ru-large'),
                 deepseek_api_key=api_key,
                 output_base_dir=yaml_config['output']['base_dir'],
                 audio_format=yaml_config.get('audio', {}).get('format', 'wav'),
@@ -151,7 +163,15 @@ class Config:
                 # Новые настройки
                 vosk_mode=vosk_config.get('mode', 'local'),
                 vosk_server_url=vosk_config.get('server', {}).get('url', 'http://127.0.0.1:8000'),
-                vosk_server_timeout=vosk_config.get('server', {}).get('timeout', 300)
+                vosk_server_timeout=vosk_config.get('server', {}).get('timeout', 300),
+                # AI model and API base URL (from .env)
+                ai_model=os.getenv('API_MODEL') or os.getenv('AI_MODEL', 'nex-agi/nex-n2.5-mini:free'),
+                # Поддерживаем оба написания: API_ENDPONT (в .env) и API_ENDPOINT / AI_BASE_URL
+                ai_base_url=(
+                    os.getenv('API_ENDPONT')
+                    or os.getenv('API_ENDPOINT')
+                    or os.getenv('AI_BASE_URL', 'https://sprutdock.ru/v1')
+                )
             )
         except KeyError as e:
             raise ConfigurationError(f"Missing required configuration key: {e}")

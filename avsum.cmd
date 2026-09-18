@@ -12,10 +12,18 @@ set "CALLER_DIR=%CD%"
 REM Переходим в директорию проекта
 cd /d "%PROJECT_DIR%"
 
+REM Используем Python из виртуального окружения venv
+set "PY=%PROJECT_DIR%venv\Scripts\python.exe"
+if not exist "%PY%" (
+    echo Ошибка: Виртуальное окружение не найдено: %PY%
+    echo Создайте его: python -m venv venv ^&^& venv\Scripts\pip install -r requirements.txt
+    exit /b 1
+)
+
 REM Обрабатываем первый аргумент (путь к файлу)
 if "%~1"=="" (
     REM Нет аргументов - показываем справку
-    python main.py --help
+    "%PY%" main.py --help
     exit /b 0
 )
 
@@ -23,7 +31,7 @@ REM Проверяем, является ли первый аргумент оп
 set "FIRST_ARG=%~1"
 if "%FIRST_ARG:~0,2%"=="--" (
     REM Это опция (например --help, --verbose) - передаем все аргументы как есть
-    python main.py %*
+    "%PY%" main.py %*
     exit /b !errorlevel!
 )
 
@@ -48,6 +56,5 @@ if not exist "%ABS_PATH%" (
     exit /b 1
 )
 
-REM Передаем абсолютный путь и остальные аргументы
-shift
-python main.py "%ABS_PATH%" %*
+REM Передаем абсолютный путь и остальные аргументы (кроме первого - пути к файлу)
+"%PY%" main.py "%ABS_PATH%" %2 %3 %4 %5 %6 %7 %8 %9

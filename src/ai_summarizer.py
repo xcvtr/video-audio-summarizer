@@ -1,8 +1,9 @@
-"""AI-powered summarization using DeepSeek API."""
+"""AI-powered summarization using SprutDock (OpenAI-compatible) API."""
 
 import re
 from typing import List, Tuple
 from openai import OpenAI
+import httpx
 from src.models import TranscriptSegment, KeyMoment
 
 
@@ -12,20 +13,28 @@ class APIError(Exception):
 
 
 class AISummarizer:
-    """Generates structured summaries using DeepSeek API."""
+    """Generates structured summaries using a SprutDock (OpenAI-compatible) API."""
     
-    def __init__(self, api_key: str):
-        """Initialize DeepSeek API client.
+    def __init__(self, api_key: str, model: str = "nex-agi/nex-n2.5-mini:free", base_url: str = "https://sprutdock.ru/v1"):
+        """Initialize API client.
         
         Args:
-            api_key: DeepSeek API key
+            api_key: API key
+            model: Model ID (default: nex-agi/nex-n2.5-mini:free)
+            base_url: OpenAI-совместимый base URL
         """
         if not api_key:
-            raise APIError("DeepSeek API key is required")
+            raise APIError("SprutDock API key is required")
+        
+        self.model = model
+        
+        # Disable SSL verification for corporate proxy/antivirus compatibility
+        http_client = httpx.Client(verify=False)
         
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://api.deepseek.com"
+            base_url=base_url,
+            http_client=http_client
         )
     
     def generate_summary(
@@ -52,22 +61,33 @@ class AISummarizer:
             prompt = self._build_prompt(transcript, video_title)
             
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert analyst that creates detailed, comprehensive summaries of video and audio transcripts. You provide in-depth analysis with specific details, examples, and thorough explanations."},
+                    {"role": "system", "content": "Ты - эксперт-аналитик с глубоким пониманием контекста. Твоя задача - анализировать транскрипты с ошибками распознавания речи, исправлять эти ошибки на основе контекста и создавать подробные, структурированные резюме. Ты не копируешь транскрипт дословно, а перерабатываешь его в качественный аналитический текст с исправлением ошибок, добавлением структуры и глубины анализа."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=4000
+                max_tokens=6000
             )
             
+            # Check if response has choices
+            if not response.choices or len(response.choices) == 0:
+                raise APIError(f"API returned empty response. Full response: {response}")
+            
             summary_text = response.choices[0].message.content
+            
+            # DEBUG: Print raw response
+            print(f"\n[DEBUG] Raw AI response (first 500 chars):")
+            print(summary_text[:500])
+            print(f"[DEBUG] Full response length: {len(summary_text)} chars\n")
             
             # Parse response to extract summary and key moments
             summary, key_moments = self._parse_ai_response(summary_text, transcript)
             
             return summary, key_moments
             
+        except APIError:
+            raise
         except Exception as e:
             raise APIError(f"Failed to generate summary: {e}")
     
@@ -86,93 +106,124 @@ class AISummarizer:
             for seg in transcript
         ])
         
-        prompt = f"""Создай ПОДРОБНОЕ структурированное резюме этой видео-транскрипции в формате Markdown НА РУССКОМ ЯЗЫКЕ.
+        prompt = f"""Ты - эксперт по анализу и переработке транскриптов. Твоя задача - создать ПОДРОБНОЕ, СТРУКТУРИРОВАННОЕ и ИСПРАВЛЕННОЕ резюме на основе предоставленной транскрипции.
+
+ВАЖНО: Транскрипция содержит ошибки распознавания речи. Твоя задача - понять смысл, исправить ошибки и создать качественное резюме.
 
 Название: {video_title}
 
-Транскрипция:
+Транскрипция (с ошибками распознавания):
 {transcript_text}
 
 ТРЕБОВАНИЯ К РЕЗЮМЕ:
 
-1. **Краткий обзор** (3-4 предложения)
-   - О чем это видео/аудио
-   - Основная тема и контекст
-   - Кто выступает (если понятно из контекста)
+1. **КРАТКИЙ ОБЗОР** (4-6 предложений)
+   - Основная тема и цель контента
+   - Кто говорит/выступает (если можно определить)
+   - Ключевая проблема или вопрос, который обсуждается
+   - Общий контекст и значимость материала
 
-2. **Основные темы с временными метками** (формат HH:MM:SS)
-   - Разбей контент на 5-8 тематических блоков
-   - Укажи временной диапазон для каждого блока
-   - Дай краткое описание каждой темы
+2. **ПОДРОБНЫЙ РАЗБОР ПО ТЕМАТИЧЕСКИМ БЛОКАМ** (5-8 блоков)
+   Для каждого блока:
+   - Временной диапазон [HH:MM:SS - HH:MM:SS]
+   - Название темы/раздела
+   - Подробное содержание (5-7 предложений):
+     * Что именно обсуждается
+     * Какие аргументы приводятся
+     * Какие примеры или кейсы упоминаются
+     * Какие выводы или решения предлагаются
+     * Исправь ошибки распознавания, восстанови правильный смысл
 
-3. **Детальный разбор ключевых моментов**
-   - Для КАЖДОЙ основной темы напиши подробный параграф (3-5 предложений)
-   - Раскрой суть обсуждаемых вопросов
-   - Укажи конкретные факты, цифры, примеры, если они упоминались
-   - Объясни логику рассуждений и выводы
-   - Используй подзаголовки для структурирования
+3. **АНАЛИЗ И ИНТЕРПРЕТАЦИЯ**
+   - Логическая структура повествования
+   - Связи между разными темами
+   - Эволюция идей или аргументов
+   - Скрытые смыслы или подтексты (если есть)
 
-4. **Практические выводы и рекомендации**
-   - Что конкретно предлагается делать
-   - Какие решения были приняты
-   - Какие действия рекомендуются
+4. **КЛЮЧЕВЫЕ ВЫВОДЫ И РЕКОМЕНДАЦИИ**
+   - Основные выводы из материала
+   - Практические рекомендации или действия
+   - Что можно применить на практике
+   - Какие вопросы остались открытыми
 
-5. **САМЫЕ ВАЖНЫЕ МОМЕНТЫ** (3-5 штук)
-   - Выбери ТОЛЬКО критически важные моменты с ключевыми решениями или выводами
-   - Для каждого напиши 2-3 предложения с подробным объяснением
-   - Отметь префиксом "ВАЖНЫЙ МОМЕНТ:" с временной меткой [HH:MM:SS]
-   - Объясни, ПОЧЕМУ этот момент важен
+5. **САМЫЕ ВАЖНЫЕ МОМЕНТЫ** (3-5 моментов)
+   Для каждого важного момента:
+   - Временная метка [HH:MM:SS]
+   - Префикс "ВАЖНЫЙ МОМЕНТ:"
+   - Подробное описание (3-4 предложения):
+     * Что происходит в этот момент
+     * Почему это важно
+     * Какое значение имеет для общего понимания
+     * Как это связано с другими частями
 
-ВАЖНО: 
-- Резюме должно быть ПОДРОБНЫМ и ИНФОРМАТИВНЫМ
-- Не ограничивайся общими фразами - раскрывай детали
-- Используй конкретику из транскрипции
-- Структурируй информацию с помощью заголовков и списков
-- ВСЁ НА РУССКОМ ЯЗЫКЕ
+КРИТИЧЕСКИ ВАЖНЫЕ ПРАВИЛА:
+1. НЕ КОПИРУЙ ТРАНСКРИПТ ДОСЛОВНО - создавай ПЕРЕРАБОТАННЫЙ текст
+2. ИСПРАВЛЯЙ ОШИБКИ РАСПОЗНАВАНИЯ - используй контекст для восстановления правильного смысла
+3. БУДЬ ПОДРОБНЫМ - не ограничивайся общими фразами, раскрывай детали
+4. СТРУКТУРИРУЙ ИНФОРМАЦИЮ - используй заголовки, подзаголовки, списки
+5. СОЗДАВАЙ ЦЕЛОСТНОЕ ПОВЕСТВОВАНИЕ - резюме должно читаться как связный текст
+6. ФОКУСИРУЙСЯ НА СМЫСЛЕ, а не на дословном воспроизведении
+7. ВСЁ НА РУССКОМ ЯЗЫКЕ с правильной грамматикой и стилем
 
-Форматируй ответ в Markdown с правильными заголовками и структурой."""
+Формат вывода: Markdown с четкой структурой и заголовками."""
         
         return prompt
     
     def _parse_ai_response(self, response: str, transcript: List[TranscriptSegment]) -> Tuple[str, List[KeyMoment]]:
         """Parse AI response to extract summary and key moments.
-        
+
         Args:
             response: AI response text
             transcript: Original transcript for timestamp validation
-            
+
         Returns:
             Tuple of (summary markdown, list of key moments)
         """
         # Extract key moments marked with "ВАЖНЫЙ МОМЕНТ:" or "KEY MOMENT:"
         key_moments = []
-        
-        # Find all lines with key moment markers and extract timestamps
-        key_moment_pattern = r'(?:ВАЖНЫЙ МОМЕНТ|KEY MOMENT):.*?(\d{1,2}:\d{2}:\d{2})'
-        matches = re.finditer(key_moment_pattern, response, re.IGNORECASE)
-        
+
+        # Improved pattern to capture more variations
+        key_moment_pattern = r'(?:ВАЖНЫЙ МОМЕНТ|KEY MOMENT|Важный момент|Key moment):\s*(.*?)(?:\n|$)'
+        matches = re.finditer(key_moment_pattern, response, re.IGNORECASE | re.MULTILINE)
+
         for match in matches:
-            timestamp_str = match.group(1)
-            # Convert timestamp to seconds
-            parts = timestamp_str.split(':')
-            if len(parts) == 3:
-                hours, minutes, seconds = map(int, parts)
-                timestamp = hours * 3600 + minutes * 60 + seconds
-                
-                # Extract description (text after timestamp)
-                line = match.group(0)
-                description = re.sub(r'(?:ВАЖНЫЙ МОМЕНТ|KEY MOMENT):\s*', '', line, flags=re.IGNORECASE)
-                description = description.replace(timestamp_str, '').strip()
-                
-                moment = KeyMoment(
-                    timestamp=float(timestamp),
-                    description=description[:100],  # Limit description length
-                    importance=0.9,  # High importance for AI-identified moments
-                    source="context"
-                )
-                key_moments.append(moment)
+            line = match.group(0)
+            
+            # Try to extract timestamp from the line
+            timestamp_match = re.search(r'\[(\d{1,2}:\d{2}:\d{2})\]', line)
+            if timestamp_match:
+                timestamp_str = timestamp_match.group(1)
+                # Convert timestamp to seconds
+                parts = timestamp_str.split(':')
+                if len(parts) == 3:
+                    hours, minutes, seconds = map(int, parts)
+                    timestamp = hours * 3600 + minutes * 60 + seconds
+
+                    # Extract description (remove markers and timestamp)
+                    description = re.sub(r'(?:ВАЖНЫЙ МОМЕНТ|KEY MOMENT|Важный момент|Key moment):\s*', '', line, flags=re.IGNORECASE)
+                    description = re.sub(r'\[\d{1,2}:\d{2}:\d{2}\]', '', description).strip()
+
+                    # Clean up description
+                    description = re.sub(r'^\s*[-•*]\s*', '', description)  # Remove bullet points
+                    description = description.strip()
+
+                    if description and len(description) > 10:  # Ensure meaningful description
+                        moment = KeyMoment(
+                            timestamp=float(timestamp),
+                            description=description[:150],  # Increased limit for better descriptions
+                            importance=0.9,  # High importance for AI-identified moments
+                            source="ai_analysis"
+                        )
+                        key_moments.append(moment)
+
+        # Clean up the summary - remove key moment markers but keep the rest
+        # We'll remove lines that start with key moment markers
+        lines = response.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            if not re.match(r'^\s*(?:ВАЖНЫЙ МОМЕНТ|KEY MOMENT|Важный момент|Key moment):', line, re.IGNORECASE):
+                cleaned_lines.append(line)
         
-        # Clean up the summary (remove key moment markers for cleaner output)
-        summary = re.sub(r'(?:ВАЖНЫЙ МОМЕНТ|KEY MOMENT):\s*', '', response, flags=re.IGNORECASE)
-        
+        summary = '\n'.join(cleaned_lines)
+
         return summary, key_moments

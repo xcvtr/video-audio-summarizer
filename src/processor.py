@@ -42,7 +42,7 @@ class VideoProcessor:
                     server_url=config.vosk_server_url,
                     timeout=config.vosk_server_timeout
                 )
-                self.console.print(f"[green]✓[/green] Используется серверный режим VOSK: {config.vosk_server_url}")
+                self.console.print(f"[green][OK][/green] Используется серверный режим VOSK: {config.vosk_server_url}")
             except Exception as e:
                 self.console.print(f"[yellow]⚠[/yellow] Не удалось подключиться к серверу VOSK: {e}")
                 self.console.print("[yellow]⚠[/yellow] Переключение на локальный режим...")
@@ -51,10 +51,13 @@ class VideoProcessor:
         else:
             from src.speech_recognizer import SpeechRecognizer
             self.speech_recognizer = SpeechRecognizer(config.vosk_model_path)
-            self.console.print(f"[green]✓[/green] Используется локальный режим VOSK")
+            self.console.print(f"[green][OK][/green] Используется локальный режим VOSK")
         
         self.keyword_detector = KeywordDetector(config.keyword_triggers)
-        self.ai_summarizer = AISummarizer(config.deepseek_api_key)
+        print(f"[DEBUG] AI Model: {config.ai_model}")
+        print(f"[DEBUG] API Base URL: {config.ai_base_url}")
+        print(f"[DEBUG] API Key (first 10 chars): {config.deepseek_api_key[:10]}...")
+        self.ai_summarizer = AISummarizer(config.deepseek_api_key, config.ai_model, config.ai_base_url)
         self.screenshot_capturer = ScreenshotCapturer(config)
         self.output_manager = OutputManager(Path(config.output_base_dir))
     
@@ -108,7 +111,7 @@ class VideoProcessor:
             try:
                 self.audio_extractor.extract(video_path, str(audio_path))
                 result.audio_path = audio_path
-                self.console.print("[green]✓[/green] Audio extracted")
+                self.console.print("[green][OK][/green] Audio extracted")
             except AudioExtractionError as e:
                 result.error = str(e)
                 self.console.print(f"[red]✗[/red] Audio extraction failed: {e}")
@@ -137,7 +140,7 @@ class VideoProcessor:
                     self.speech_recognizer.save_transcript(transcript, str(transcript_path))
                     result.transcript_path = transcript_path
                     progress.update(task, completed=100)
-                    self.console.print(f"[green]✓[/green] Transcribed {len(transcript)} segments")
+                    self.console.print(f"[green][OK][/green] Transcribed {len(transcript)} segments")
                 except SpeechRecognitionError as e:
                     progress.update(task, completed=100)
                     result.error = str(e)
@@ -154,7 +157,7 @@ class VideoProcessor:
             try:
                 mp3_path = self.audio_extractor.convert_to_mp3(str(audio_path), video_name)
                 result.audio_path = mp3_path
-                self.console.print("[green]✓[/green] Audio converted to MP3")
+                self.console.print("[green][OK][/green] Audio converted to MP3")
             except AudioExtractionError as e:
                 self.console.print(f"[yellow]![/yellow] MP3 conversion failed: {e}")
                 # Continue with WAV file
@@ -162,7 +165,7 @@ class VideoProcessor:
             # Step 3: Detect keywords
             self.console.print("[yellow]→[/yellow] Detecting key moments...")
             keyword_moments = self.keyword_detector.detect(transcript)
-            self.console.print(f"[green]✓[/green] Found {len(keyword_moments)} keyword moments")
+            self.console.print(f"[green][OK][/green] Found {len(keyword_moments)} keyword moments")
             
             # Step 4: Generate AI summary
             with Progress(
@@ -185,7 +188,7 @@ class VideoProcessor:
                 self.console.print(f"[yellow]![/yellow] AI summary failed: {error_msg}")
                 self.console.print("[yellow]→[/yellow] Continuing with transcript only...")
             else:
-                self.console.print(f"[green]✓[/green] Summary generated with {len(ai_moments)} AI moments")
+                self.console.print(f"[green][OK][/green] Summary generated with {len(ai_moments)} AI moments")
             
             # Combine key moments
             all_moments = keyword_moments + ai_moments
@@ -216,7 +219,7 @@ class VideoProcessor:
                 if 'screenshot_error' in locals():
                     self.console.print(f"[yellow]![/yellow] Screenshot capture failed: {screenshot_error}")
                 else:
-                    self.console.print(f"[green]✓[/green] Captured {len(screenshots)} screenshots")
+                    self.console.print(f"[green][OK][/green] Captured {len(screenshots)} screenshots")
             else:
                 screenshots = []
                 self.console.print("[yellow]![/yellow] No key moments found, skipping screenshots")
@@ -233,10 +236,10 @@ class VideoProcessor:
                 summary_path
             )
             result.summary_path = summary_path
-            self.console.print("[green]✓[/green] Summary document created")
+            self.console.print("[green][OK][/green] Summary document created")
             
             result.success = True
-            self.console.print(f"[bold green]✓ Processing complete![/bold green] Output: {output_dir}")
+            self.console.print(f"[bold green][OK] Processing complete![/bold green] Output: {output_dir}")
             
             return result
             
@@ -279,7 +282,7 @@ class VideoProcessor:
                 # Convert to VOSK-compatible format
                 self.audio_extractor._convert_to_vosk_format(audio_path, str(temp_wav))
                 result.audio_path = temp_wav
-                self.console.print("[green]✓[/green] Audio prepared")
+                self.console.print("[green][OK][/green] Audio prepared")
             except AudioExtractionError as e:
                 result.error = str(e)
                 self.console.print(f"[red]✗[/red] Audio preparation failed: {e}")
@@ -308,7 +311,7 @@ class VideoProcessor:
                     self.speech_recognizer.save_transcript(transcript, str(transcript_path))
                     result.transcript_path = transcript_path
                     progress.update(task, completed=100)
-                    self.console.print(f"[green]✓[/green] Transcribed {len(transcript)} segments")
+                    self.console.print(f"[green][OK][/green] Transcribed {len(transcript)} segments")
                 except SpeechRecognitionError as e:
                     progress.update(task, completed=100)
                     result.error = str(e)
@@ -330,7 +333,7 @@ class VideoProcessor:
             # Step 3: Detect keywords
             self.console.print("[yellow]→[/yellow] Detecting key moments...")
             keyword_moments = self.keyword_detector.detect(transcript)
-            self.console.print(f"[green]✓[/green] Found {len(keyword_moments)} keyword moments")
+            self.console.print(f"[green][OK][/green] Found {len(keyword_moments)} keyword moments")
             
             # Step 4: Generate AI summary
             with Progress(
@@ -353,7 +356,7 @@ class VideoProcessor:
                 self.console.print(f"[yellow]![/yellow] AI summary failed: {error_msg}")
                 self.console.print("[yellow]→[/yellow] Continuing with transcript only...")
             else:
-                self.console.print(f"[green]✓[/green] Summary generated with {len(ai_moments)} AI moments")
+                self.console.print(f"[green][OK][/green] Summary generated with {len(ai_moments)} AI moments")
             
             # Combine key moments (no screenshots for audio)
             all_moments = keyword_moments + ai_moments
@@ -370,10 +373,10 @@ class VideoProcessor:
                 summary_path
             )
             result.summary_path = summary_path
-            self.console.print("[green]✓[/green] Summary document created")
+            self.console.print("[green][OK][/green] Summary document created")
             
             result.success = True
-            self.console.print(f"[bold green]✓ Processing complete![/bold green] Output: {audio_dir}")
+            self.console.print(f"[bold green][OK] Processing complete![/bold green] Output: {audio_dir}")
             
             return result
             
@@ -462,7 +465,7 @@ class VideoProcessor:
         
         # Parse key moments from summary
         key_moments = self._parse_key_moments_from_summary(summary_path)
-        self.console.print(f"[green]✓[/green] Found {len(key_moments)} key moments in summary")
+        self.console.print(f"[green][OK][/green] Found {len(key_moments)} key moments in summary")
         
         if not key_moments:
             self.console.print(f"[yellow]![/yellow] No key moments found in summary")
@@ -499,7 +502,7 @@ class VideoProcessor:
         if 'screenshot_error' in locals():
             self.console.print(f"[yellow]![/yellow] Screenshot capture failed: {screenshot_error}")
         else:
-            self.console.print(f"[green]✓[/green] Generated {len(screenshots)} screenshots")
+            self.console.print(f"[green][OK][/green] Generated {len(screenshots)} screenshots")
         
         return ProcessingResult(
             video_path=video_path,
@@ -607,7 +610,7 @@ class VideoProcessor:
         # Load transcript
         try:
             transcript = self.speech_recognizer.load_transcript(str(transcript_path))
-            self.console.print(f"[green]✓[/green] Loaded {len(transcript)} transcript segments")
+            self.console.print(f"[green][OK][/green] Loaded {len(transcript)} transcript segments")
         except Exception as e:
             self.console.print(f"[red]✗[/red] Failed to load transcript: {e}")
             return ProcessingResult(
@@ -620,7 +623,7 @@ class VideoProcessor:
         # Detect keywords
         self.console.print("[yellow]→[/yellow] Detecting key moments...")
         keyword_moments = self.keyword_detector.detect(transcript)
-        self.console.print(f"[green]✓[/green] Found {len(keyword_moments)} keyword moments")
+        self.console.print(f"[green][OK][/green] Found {len(keyword_moments)} keyword moments")
         
         # Generate AI summary with improved prompt
         video_name = Path(video_path).stem
@@ -643,7 +646,7 @@ class VideoProcessor:
         if 'error_msg' in locals():
             self.console.print(f"[yellow]![/yellow] AI summary failed: {error_msg}")
         else:
-            self.console.print(f"[green]✓[/green] Summary generated with {len(ai_moments)} AI moments")
+            self.console.print(f"[green][OK][/green] Summary generated with {len(ai_moments)} AI moments")
         
         # Combine key moments
         all_moments = keyword_moments + ai_moments
@@ -673,7 +676,7 @@ class VideoProcessor:
             if 'screenshot_error' in locals():
                 self.console.print(f"[yellow]![/yellow] Screenshot capture failed: {screenshot_error}")
             else:
-                self.console.print(f"[green]✓[/green] Captured {len(screenshots)} screenshots")
+                self.console.print(f"[green][OK][/green] Captured {len(screenshots)} screenshots")
         else:
             screenshots = []
             self.console.print("[yellow]![/yellow] No key moments found")
@@ -689,7 +692,7 @@ class VideoProcessor:
             screenshots,
             summary_path
         )
-        self.console.print("[green]✓[/green] Summary document updated")
+        self.console.print("[green][OK][/green] Summary document updated")
         
         return ProcessingResult(
             video_path=video_path,

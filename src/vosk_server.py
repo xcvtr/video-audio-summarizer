@@ -315,8 +315,8 @@ def main():
     parser = argparse.ArgumentParser(description="VOSK Speech Recognition Server")
     parser.add_argument(
         "--model-path",
-        default="./vosk/model-ru",
-        help="Путь к модели VOSK (по умолчанию: ./vosk/model-ru)"
+        default="./vosk/model-ru-large",
+        help="Путь к модели VOSK (по умолчанию: ./vosk/model-ru-large)"
     )
     parser.add_argument(
         "--host",

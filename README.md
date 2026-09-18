@@ -1,6 +1,6 @@
 # Video Summarizer
 
-Автоматическая система суммаризации видео с использованием распознавания речи (VOSK) и AI (DeepSeek API).
+Автоматическая система суммаризации видео с использованием распознавания речи (VOSK) и AI (SprutDock API).
 
 ## Возможности
 
@@ -8,7 +8,7 @@
 - 🎤 Извлечение аудиодорожек из видео
 - 🎵 Прямая обработка аудио файлов (MP3, WAV, M4A, AAC, FLAC, OGG, WMA)
 - 📝 Распознавание речи с временными метками (VOSK)
-- 🤖 Генерация структурированного резюме с помощью AI (DeepSeek)
+- 🤖 Генерация структурированного резюме с помощью AI (SprutDock)
 - 🔍 Автоматическое определение ключевых моментов (по ключевым словам и контексту)
 - 📸 Создание скриншотов важных моментов (только для видео)
 - 📄 Генерация Markdown-документов с резюме и транскрипцией
@@ -18,15 +18,25 @@
 - Python 3.9+
 - FFmpeg (для извлечения аудио)
 - VOSK модель (для распознавания речи)
-- DeepSeek API ключ
+- SprutDock API ключ
 
 ## Установка
 
-### 1. Установите зависимости
+### 1. Создайте виртуальное окружение и установите зависимости
 
 ```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Либо запускайте скрипты `avsum.cmd` / `avsum.ps1` — они автоматически используют Python из `venv`.
 
 ### 2. Установите FFmpeg
 
@@ -52,15 +62,21 @@ brew install ffmpeg
 
 Скачайте модель для вашего языка с https://alphacephei.com/vosk/models
 
-Например, для русского языка:
+Например, для русского языка (рекомендуется large модель для лучшей точности):
 ```bash
 # Создайте директорию для моделей
-mkdir -p models
+mkdir -p vosk
 
-# Скачайте и распакуйте модель
-cd models
+# Скачайте и распакуйте large модель
+cd vosk
 wget https://alphacephei.com/vosk/models/vosk-model-ru-0.42.zip
 unzip vosk-model-ru-0.42.zip
+mv vosk-model-ru-0.42 model-ru
+
+# Или скачайте large модель (рекомендуется)
+wget https://alphacephei.com/vosk/models/vosk-model-ru-0.42-large.zip
+unzip vosk-model-ru-0.42-large.zip
+mv vosk-model-ru-0.42-large model-ru-large
 cd ..
 ```
 
@@ -71,15 +87,17 @@ cd ..
 cp .env.example .env
 ```
 
-Отредактируйте `.env` и добавьте ваш DeepSeek API ключ:
+Отредактируйте `.env` и добавьте ваш SprutDock API ключ:
 ```
-DEEPSEEK_API_KEY=your_api_key_here
+API_KEY=sk-mp-your_api_key_here
+API_ENDPONT=https://sprutdock.ru/v1
+API_MODEL=nex-agi/nex-n2.5-mini:free
 ```
 
 Отредактируйте `config.yaml` при необходимости:
 ```yaml
 vosk:
-  model_path: "./models/vosk-model-ru-0.42"
+  model_path: "./vosk/model-ru-large"  # По умолчанию используется large модель
 
 keywords:
   triggers:
@@ -198,7 +216,7 @@ python main.py *.mp4 *.mp3
 
 ```yaml
 vosk:
-  model_path: "./models/vosk-model-ru-0.42"  # Путь к VOSK модели
+  model_path: "./vosk/model-ru-large"  # Путь к VOSK модели (по умолчанию large)
 
 audio:
   format: "wav"                               # Формат аудио
@@ -224,7 +242,9 @@ output:
 ### .env
 
 ```
-DEEPSEEK_API_KEY=your_deepseek_api_key_here
+API_KEY=sk-mp-your_sprutdock_api_key_here
+API_ENDPONT=https://sprutdock.ru/v1
+API_MODEL=nex-agi/nex-n2.5-mini:free
 ```
 
 ## Разработка
@@ -312,7 +332,7 @@ run_vosk_client.cmd --audio-file audio.wav
 
 ```yaml
 vosk:
-  model_path: "./vosk/model-ru"
+  model_path: "./vosk/model-ru-large"
   # Режим работы: "local" - локальная модель, "server" - через сервер
   mode: "server"
   # Настройки для серверного режима
