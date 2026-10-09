@@ -30,10 +30,10 @@ class Config:
     vosk_mode: str = "local"  # "local" или "server"
     vosk_server_url: str = "http://127.0.0.1:8000"
     vosk_server_timeout: int = 300
-    # AI model for SprutDock
+    # AI model (по умолчанию, если не задан в .env)
     ai_model: str = "nex-agi/nex-n2.5-mini:free"
-    # Base URL OpenAI-совместимого API
-    ai_base_url: str = "https://sprutdock.ru/v1"
+    # Base URL OpenAI-совместимого API (обязателен, задаётся в .env)
+    ai_base_url: str = ""
     
     def __post_init__(self):
         """Post-initialization to resolve relative paths."""
@@ -116,13 +116,12 @@ class Config:
         # Check for API key
         api_key = (
             os.getenv("API_KEY")
-            or os.getenv("SPRUTDOCK_API_KEY")
             or os.getenv("DEEPSEEK_API_KEY")
             or os.getenv("OPENROUTER_API_KEY")
         )
         if not api_key:
             raise ConfigurationError(
-                "API_KEY (or SPRUTDOCK_API_KEY / DEEPSEEK_API_KEY / OPENROUTER_API_KEY) not found in .env file. "
+                "API_KEY not found in .env file. "
                 "Please create a .env file with your API key. "
                 "See .env.example for reference."
             )
@@ -170,7 +169,7 @@ class Config:
                 ai_base_url=(
                     os.getenv('API_ENDPONT')
                     or os.getenv('API_ENDPOINT')
-                    or os.getenv('AI_BASE_URL', 'https://sprutdock.ru/v1')
+                    or os.getenv('AI_BASE_URL', '')
                 )
             )
         except KeyError as e:

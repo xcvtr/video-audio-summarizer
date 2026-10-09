@@ -1,6 +1,6 @@
 # Video Summarizer
 
-Автоматическая система суммаризации видео с использованием распознавания речи (VOSK) и AI (SprutDock API).
+Автоматическая система суммаризации видео с использованием распознавания речи (VOSK) и AI (OpenAI-совместимый API).
 
 ## Возможности
 
@@ -8,7 +8,7 @@
 - 🎤 Извлечение аудиодорожек из видео
 - 🎵 Прямая обработка аудио файлов (MP3, WAV, M4A, AAC, FLAC, OGG, WMA)
 - 📝 Распознавание речи с временными метками (VOSK)
-- 🤖 Генерация структурированного резюме с помощью AI (SprutDock)
+- 🤖 Генерация структурированного резюме с помощью AI (OpenAI-совместимый API)
 - 🔍 Автоматическое определение ключевых моментов (по ключевым словам и контексту)
 - 📸 Создание скриншотов важных моментов (только для видео)
 - 📄 Генерация Markdown-документов с резюме и транскрипцией
@@ -18,7 +18,7 @@
 - Python 3.9+
 - FFmpeg (для извлечения аудио)
 - VOSK модель (для распознавания речи)
-- SprutDock API ключ
+- OpenAI-совместимый API ключ
 
 ## Установка
 
@@ -87,10 +87,10 @@ cd ..
 cp .env.example .env
 ```
 
-Отредактируйте `.env` и добавьте ваш SprutDock API ключ:
+Отредактируйте `.env` и добавьте ваш API ключ и параметры провайдера:
 ```
-API_KEY=sk-mp-your_api_key_here
-API_ENDPONT=https://sprutdock.ru/v1
+API_KEY=sk-your_api_key_here
+API_ENDPONT=https://api.example.com/v1
 API_MODEL=nex-agi/nex-n2.5-mini:free
 ```
 
@@ -242,8 +242,8 @@ output:
 ### .env
 
 ```
-API_KEY=sk-mp-your_sprutdock_api_key_here
-API_ENDPONT=https://sprutdock.ru/v1
+API_KEY=sk-your_api_key_here
+API_ENDPONT=https://api.example.com/v1
 API_MODEL=nex-agi/nex-n2.5-mini:free
 ```
 

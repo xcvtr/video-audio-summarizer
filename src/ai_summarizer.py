@@ -1,4 +1,4 @@
-"""AI-powered summarization using SprutDock (OpenAI-compatible) API."""
+"""AI-powered summarization using an OpenAI-compatible API."""
 
 import re
 from typing import List, Tuple
@@ -13,18 +13,20 @@ class APIError(Exception):
 
 
 class AISummarizer:
-    """Generates structured summaries using a SprutDock (OpenAI-compatible) API."""
+    """Generates structured summaries using an OpenAI-compatible API."""
     
-    def __init__(self, api_key: str, model: str = "nex-agi/nex-n2.5-mini:free", base_url: str = "https://sprutdock.ru/v1"):
+    def __init__(self, api_key: str, model: str = "nex-agi/nex-n2.5-mini:free", base_url: str = ""):
         """Initialize API client.
         
         Args:
             api_key: API key
             model: Model ID (default: nex-agi/nex-n2.5-mini:free)
-            base_url: OpenAI-совместимый base URL
+            base_url: OpenAI-совместимый base URL (из .env)
         """
         if not api_key:
-            raise APIError("SprutDock API key is required")
+            raise APIError("API key is required")
+        if not base_url:
+            raise APIError("OpenAI-compatible API base URL is required (set API_ENDPONT in .env)")
         
         self.model = model
         
