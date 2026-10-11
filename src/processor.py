@@ -288,15 +288,18 @@ class VideoProcessor:
         self.console.print(f"\n[bold blue]Processing audio:[/bold blue] {audio_name}")
         
         try:
+            # Create output directory next to audio file (папка с именем файла)
+            output_dir = self._create_output_directory(audio_path, audio_name)
+            
             result = ProcessingResult(
                 video_path=audio_path,
-                output_dir=audio_dir,
+                output_dir=output_dir,
                 success=False
             )
             
             # Step 1: Convert audio to VOSK format if needed
             self.console.print("[yellow]→[/yellow] Preparing audio...")
-            temp_wav = audio_dir / f"{audio_name}_temp.wav"
+            temp_wav = output_dir / "audio" / "audio.wav"
             
             try:
                 # Convert to VOSK-compatible format
@@ -327,7 +330,7 @@ class VideoProcessor:
                 
                 try:
                     transcript = self.speech_recognizer.transcribe(str(temp_wav), progress_callback=update_progress)
-                    transcript_path = audio_dir / f"{audio_name}.md"
+                    transcript_path = output_dir / "transcript.md"
                     self.speech_recognizer.save_transcript(transcript, str(transcript_path))
                     result.transcript_path = transcript_path
                     progress.update(task, completed=100)
@@ -336,14 +339,7 @@ class VideoProcessor:
                     progress.update(task, completed=100)
                     result.error = str(e)
                     self.console.print(f"[red]✗[/red] Speech recognition failed: {e}")
-                    # Clean up temp file
-                    if temp_wav.exists():
-                        temp_wav.unlink()
                     return result
-            
-            # Clean up temp WAV file
-            if temp_wav.exists():
-                temp_wav.unlink()
             
             if not transcript:
                 result.error = "No speech recognized"
@@ -383,7 +379,7 @@ class VideoProcessor:
             
             # Step 5: Generate final markdown (no screenshots)
             self.console.print("[yellow]→[/yellow] Generating summary document...")
-            summary_path = audio_dir / f"{audio_name}.md"
+            summary_path = output_dir / "summary.md"
             self.output_manager.generate_summary_markdown(
                 audio_name,
                 summary,
@@ -396,18 +392,15 @@ class VideoProcessor:
             self.console.print("[green][OK][/green] Summary document created")
             
             result.success = True
-            self.console.print(f"[bold green][OK] Processing complete![/bold green] Output: {audio_dir}")
+            self.console.print(f"[bold green][OK] Processing complete![/bold green] Output: {output_dir}")
             
             return result
             
         except Exception as e:
             self.console.print(f"[bold red]✗ Processing failed:[/bold red] {e}")
-            # Clean up temp file if it exists
-            if 'temp_wav' in locals() and temp_wav.exists():
-                temp_wav.unlink()
             return ProcessingResult(
                 video_path=audio_path,
-                output_dir=audio_dir,
+                output_dir=output_dir if 'output_dir' in locals() else audio_dir,
                 success=False,
                 error=str(e)
             )
