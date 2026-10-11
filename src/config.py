@@ -37,41 +37,43 @@ class Config:
     whisper_language: Optional[str] = None  # None = автоопределение
     # AI model (по умолчанию, если не задан в .env)
     ai_model: str = "nex-agi/nex-n2.5-mini:free"
+    # Список моделей для fallback (первая = приоритетная), из config.yaml ai.models
+    ai_models: List[str] = field(default_factory=list)
     # Base URL OpenAI-совместимого API (обязателен, задаётся в .env)
     ai_base_url: str = ""
-    
+
     def __post_init__(self):
         """Post-initialization to resolve relative paths."""
         # Determine project root (where main.py is located)
         self.project_root = Path(__file__).parent.parent
-        
+
         # Resolve relative paths
         self.vosk_model_path = self._resolve_path(self.vosk_model_path)
         self.output_base_dir = self._resolve_path(self.output_base_dir)
-    
+
     def _resolve_path(self, path_str: str) -> str:
         """Resolve relative path relative to project root.
-        
+
         Args:
             path_str: Path string (can be absolute or relative)
-            
+
         Returns:
             Resolved absolute path
         """
         path = Path(path_str)
-        
+
         # If path is absolute, return as is
         if path.is_absolute():
             return str(path)
-        
+
         # Try relative to project root
         project_relative = self.project_root / path
         if project_relative.exists():
             return str(project_relative)
-        
+
         # Return original path (will fail validation if doesn't exist)
         return str(path)
-    
+
     @classmethod
     def load(cls, config_path: str = "config.yaml") -> "Config":
         """Load configuration from YAML and .env files.
@@ -87,7 +89,7 @@ class Config:
         """
         # Try to find config.yaml in multiple locations
         config_file = Path(config_path)
-        
+
         # If config_path is not absolute, try multiple locations
         if not config_file.is_absolute():
             # 1. First try: current working directory
@@ -98,7 +100,7 @@ class Config:
                 if project_config.exists():
                     config_file = project_config
                     print(f"Found config.yaml in project root: {config_file}")
-        
+
         # Load .env file - try multiple locations
         # 1. First try: same directory as config.yaml
         config_dir = config_file.parent
@@ -130,7 +132,7 @@ class Config:
                 "Please create a .env file with your API key. "
                 "See .env.example for reference."
             )
-        
+
         # DEBUG: Print API key (first 10 chars)
         print(f"[DEBUG] API key loaded: {api_key[:10]}...")
 
@@ -143,17 +145,18 @@ class Config:
                 "audio.sample_rate, audio.channels, screenshots.format, "
                 "screenshots.quality, keywords.triggers, output.base_dir"
             )
-        
+
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
                 yaml_config = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise ConfigurationError(f"Error parsing config.yaml: {e}")
-        
+
         # Extract configuration values
         try:
             vosk_config = yaml_config.get('vosk', {})
-            
+            ai_config = yaml_config.get('ai', {})
+
             config = cls(
                 vosk_model_path=vosk_config.get('model_path', './vosk/model-ru-large'),
                 deepseek_api_key=api_key,
@@ -173,8 +176,9 @@ class Config:
                 whisper_device=vosk_config.get('whisper', {}).get('device', 'auto'),
                 whisper_compute_type=vosk_config.get('whisper', {}).get('compute_type', 'int8'),
                 whisper_language=vosk_config.get('whisper', {}).get('language') or None,
-                # AI model and API base URL (from .env)
-                ai_model=os.getenv('API_MODEL') or os.getenv('AI_MODEL', 'nex-agi/nex-n2.5-mini:free'),
+                # AI model: список из config.yaml (ai.models) с fallback; ai_model = первый
+                ai_models=ai_config.get('models', []),
+                ai_model=(ai_config.get('models') or ['nex-agi/nex-n2.5-mini:free'])[0],
                 # Поддерживаем оба написания: API_ENDPONT (в .env) и API_ENDPOINT / AI_BASE_URL
                 ai_base_url=(
                     os.getenv('API_ENDPONT')
@@ -184,43 +188,43 @@ class Config:
             )
         except KeyError as e:
             raise ConfigurationError(f"Missing required configuration key: {e}")
-        
+
         # Validate configuration
         config.validate()
-        
+
         return config
-    
+
     def validate(self) -> None:
         """Validate configuration parameters.
-        
+
         Raises:
             ConfigurationError: If configuration is invalid
         """
         # Validate audio parameters first (before checking files)
         if self.audio_sample_rate <= 0:
             raise ConfigurationError("audio_sample_rate must be positive")
-        
+
         if self.audio_channels not in [1, 2]:
             raise ConfigurationError("audio_channels must be 1 (mono) or 2 (stereo)")
-        
+
         # Validate screenshot parameters
         if not (0 < self.screenshot_quality <= 100):
             raise ConfigurationError("screenshot_quality must be between 1 and 100")
-        
+
         # Validate VOSK model path
         model_path = Path(self.vosk_model_path)
         if not model_path.exists():
             # Try to provide helpful error message
             original_path = Path("./vosk/model-ru-large")
             project_relative = self.project_root / original_path
-            
+
             error_msg = f"VOSK model directory not found: {self.vosk_model_path}\n"
             error_msg += f"  Original path in config.yaml: {original_path}\n"
             error_msg += f"  Resolved relative to project: {project_relative}\n"
             error_msg += "  Please download a VOSK model and update the path in config.yaml"
-            
+
             raise ConfigurationError(error_msg)
-        
+
         # Validate output directory can be created
         output_dir = Path(self.output_base_dir)
         try:

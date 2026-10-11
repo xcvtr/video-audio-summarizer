@@ -32,3 +32,12 @@ keywords:
 
 output:
   base_dir: "./output"
+
+ai:
+  # Список моделей и порядок их перебора (fallback): пробуем по порядку,
+  # пока одна не ответит. Последняя в списке — платная.
+  models:
+    - "apodex/apodex-1.1-mini:free"
+    - "dots-studio/dots-3-note-preview:free"
+    - "nvidia/nemotron-3.5-lightning:free"
+    - "~deepseek/deepseek-flash-latest"

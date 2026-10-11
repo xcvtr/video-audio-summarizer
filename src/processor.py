@@ -73,9 +73,11 @@ class VideoProcessor:
         
         self.keyword_detector = KeywordDetector(config.keyword_triggers)
         print(f"[DEBUG] AI Model: {config.ai_model}")
+        print(f"[DEBUG] AI Models (fallback): {config.ai_models}")
         print(f"[DEBUG] API Base URL: {config.ai_base_url}")
         print(f"[DEBUG] API Key (first 10 chars): {config.deepseek_api_key[:10]}...")
-        self.ai_summarizer = AISummarizer(config.deepseek_api_key, config.ai_model, config.ai_base_url)
+        self.ai_summarizer = AISummarizer(config.deepseek_api_key, config.ai_model, config.ai_base_url,
+                                          models=config.ai_models)
         self.screenshot_capturer = ScreenshotCapturer(config)
         self.output_manager = OutputManager(Path(config.output_base_dir))
     

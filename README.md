@@ -104,9 +104,9 @@ cp .env.example .env
 
 Отредактируйте `.env` и добавьте ваш API ключ и параметры провайдера:
 ```
-API_KEY=sk-your_api_key_here
-API_ENDPONT=https://api.example.com/v1
-API_MODEL=nex-agi/nex-n2.5-mini:free
+API_KEY=sk-your-api-key-here
+API_ENDPONT=https://sprutdock.ru/v1
+# AI модель задаётся в config.yaml (ai.models) — список с fallback
 ```
 
 Отредактируйте `config.yaml` при необходимости:
@@ -294,10 +294,23 @@ output:
 
 ### .env
 
+```env
+API_KEY=sk-your-api-key-here
+API_ENDPONT=https://sprutdock.ru/v1
+# AI модель задаётся в config.yaml (ai.models) — список с fallback, здесь не указывается.
 ```
-API_KEY=sk-your_api_key_here
-API_ENDPONT=https://api.example.com/v1
-API_MODEL=nex-agi/nex-n2.5-mini:free
+
+### AI-модели (fallback)
+
+Список моделей и порядок перебора задаётся в `config.yaml` (`ai.models`). При генерации резюме модели пробуются по порядку, пока одна не ответит — если первая недоступна или выдаёт ошибку, автоматически переключается на следующую:
+
+```yaml
+ai:
+  models:
+    - "apodex/apodex-1.1-mini:free"        # 1-я (бесплатная)
+    - "dots-studio/dots-3-note-preview:free" # 2-я (бесплатная)
+    - "nvidia/nemotron-3.5-lightning:free"   # 3-я (бесплатная)
+    - "~deepseek/deepseek-flash-latest"      # 4-я (платная, последний резерв)
 ```
 
 ## Разработка
