@@ -230,8 +230,19 @@ python main.py *.mp4 *.mp3
 ### config.yaml
 
 ```yaml
+# Движок распознавания речи: "whisper" (faster-whisper, GPU/CPU), "local" (VOSK, CPU), "server" (VOSK-сервер)
 vosk:
-  model_path: "./vosk/model-ru-large"  # Путь к VOSK модели (по умолчанию large)
+  model_path: "./vosk/model-ru-large"  # Путь к VOSK модели (для режимов "local"/"server")
+  mode: "whisper"                      # "whisper" | "local" | "server"
+  # Режим "server"
+  server:
+    url: "http://127.0.0.1:8000"
+    timeout: 300
+  # Режим "whisper" (faster-whisper, работает на GPU)
+  whisper:
+    model_size: "small"     # tiny / base / small / medium / large-v3
+    device: "auto"          # "auto" | "cuda" | "cpu"
+    compute_type: "int8"    # int8 = минимум VRAM, влезает в 3GB
 
 audio:
   format: "wav"                               # Формат аудио
@@ -253,6 +264,18 @@ keywords:
 output:
   base_dir: "./output"                        # Базовая директория для результатов
 ```
+
+#### Движки распознавания речи
+
+- **`whisper` (по умолчанию)** — faster-whisper на GPU (CUDA). Проверено на
+  GTX 1060 3GB: модель `small`/int8 занимает ~0.5GB VRAM и влезает в 3GB.
+  Требует: `pip install -r requirements.txt` (faster-whisper), модель скачается
+  с HuggingFace при первом запуске.
+- **`local`** — VOSK на CPU (прежний режим по умолчанию). Требует скачанной
+  модели VOSK по пути `vosk.model_path`.
+- **`server`** — VOSK-сервер (FastAPI), модель грузится один раз.
+
+Подробности про GPU и VOSK — см. `docs/VOSK_GPU_analysis.md`.
 
 ### .env
 

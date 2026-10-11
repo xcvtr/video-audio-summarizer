@@ -1,5 +1,8 @@
 vosk>=0.3.45
 openai>=1.0.0
+# faster-whisper: GPU-транскрипция (режим "whisper" в config.yaml)
+faster-whisper>=1.0.0
+av>=11,<19  # PyAV 19+ сломал аргумент metadata_errors у faster-whisper
 PyYAML>=6.0
 python-dotenv>=1.0.0
 rich>=13.0.0

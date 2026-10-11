@@ -35,7 +35,25 @@ class VideoProcessor:
         self.audio_extractor = AudioExtractor(config)
         
         # Инициализация распознавателя речи в зависимости от режима
-        if config.vosk_mode == "server":
+        if config.vosk_mode == "whisper":
+            from src.speech_recognizer_whisper import WhisperRecognizer
+            try:
+                self.speech_recognizer = WhisperRecognizer(
+                    model_size=config.whisper_model_size,
+                    device=config.whisper_device,
+                    compute_type=config.whisper_compute_type,
+                    language=config.whisper_language,
+                )
+                self.console.print(
+                    f"[green][OK][/green] faster-whisper ({config.whisper_model_size}, "
+                    f"{self.speech_recognizer.device}/{config.whisper_compute_type})"
+                )
+            except Exception as e:
+                self.console.print(f"[yellow]⚠[/yellow] Не удалось загрузить faster-whisper: {e}")
+                self.console.print("[yellow]⚠[/yellow] Переключение на локальный режим VOSK...")
+                from src.speech_recognizer import SpeechRecognizer
+                self.speech_recognizer = SpeechRecognizer(config.vosk_model_path)
+        elif config.vosk_mode == "server":
             from src.speech_recognizer_client import SpeechRecognizerClient
             try:
                 self.speech_recognizer = SpeechRecognizerClient(

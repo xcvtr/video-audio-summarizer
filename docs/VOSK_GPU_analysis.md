@@ -72,13 +72,19 @@ NVIDIA GTX 1060 3GB, CC 6.1, драйвер 576.57 / CUDA 12.9, проект `vi
 влезает в 3GB.** Модель base/int8 ещё меньше. Скачивается с HuggingFace
 (`Systran/faster-whisper-small`, уже в кэше HF на этой машине).
 
-## Рекомендация
+## Рекомендация (реализовано)
 
-- VOSK на GPU — отбросить (технически невозможно на Windows из официальных колёс).
-- Для GPU-транскрипции в 3GB — `faster-whisper` (`small` или `base`, `compute_type="int8"`),
-  подключить как новый бэкенд рядом с локальным VOSK (CPU-фолбэк сохранить).
-  Точки интеграции: `src/speech_recognizer.py` (интерфейс `transcribe(audio_path,
-  progress_callback) -> List[TranscriptSegment]`) и фабрика
-  `create_speech_recognizer()` в `src/speech_recognizer_client.py`.
-- Требование: добавить `faster-whisper` в `requirements.txt`; модель качается
-  один раз (~0.5GB на диск для small).
+VOSK на GPU — отброшено (технически невозможно на Windows из официальных колёс).
+В проект добавлен бэкенд **faster-whisper** как опция, VOSK оставлен:
+
+- `src/speech_recognizer_whisper.py` — `WhisperRecognizer` с тем же интерфейсом,
+  что и VOSK (`transcribe()` / `save_transcript()` / `load_transcript()`).
+- `config.yaml` → `vosk.mode`: `"whisper"` (faster-whisper, GPU/CPU), `"local"`
+  (VOSK, CPU), `"server"` (VOSK-сервер). VOSK доступен как опция через `mode: "local"`.
+- Параметры whisper: `model_size`, `device` (auto/cuda/cpu), `compute_type` (int8),
+  `language` (null = автоопределение).
+- Проверено на этой машине (GTX 1060 3GB): `mode: whisper`, `small`/int8 → CUDA,
+  транскрипция работает, VRAM ~2127MiB (влезает в 3GB), при недоступности GPU
+  автоматический фолбэк на VOSK local.
+- Зависимость: `faster-whisper>=1.0.0` + `av>=11,<19` (PyAV 19+ ломает
+  faster-whisper). Модель качается с HuggingFace один раз.

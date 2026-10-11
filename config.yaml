@@ -1,11 +1,17 @@
 vosk:
   model_path: "./vosk/model-ru"
-  # Режим работы: "local" - локальная модель, "server" - через сервер
-  mode: "local"
+  # Режим работы: "local" - локальная модель VOSK (CPU), "server" - через сервер, "whisper" - faster-whisper (GPU/CPU)
+  mode: "whisper"
   # Настройки для серверного режима
   server:
     url: "http://127.0.0.1:8000"
     timeout: 300  # секунды
+  # Настройки для режима "whisper" (faster-whisper, работает на GPU)
+  whisper:
+    model_size: "small"     # tiny / base / small / medium / large-v3
+    device: "auto"          # "auto", "cuda" или "cpu"
+    compute_type: "int8"    # int8 = минимум VRAM, влезает в 3GB
+    language: null          # null = автоопределение, можно "ru"
 
 audio:
   format: "wav"

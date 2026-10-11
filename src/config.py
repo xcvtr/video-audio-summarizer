@@ -27,9 +27,14 @@ class Config:
     screenshot_quality: int = 95
     keyword_triggers: List[str] = field(default_factory=list)
     # Новые поля для серверного режима
-    vosk_mode: str = "local"  # "local" или "server"
+    vosk_mode: str = "local"  # "local", "server" или "whisper"
     vosk_server_url: str = "http://127.0.0.1:8000"
     vosk_server_timeout: int = 300
+    # faster-whisper (GPU) режим
+    whisper_model_size: str = "small"
+    whisper_device: str = "auto"  # "auto", "cuda" или "cpu"
+    whisper_compute_type: str = "int8"
+    whisper_language: Optional[str] = None  # None = автоопределение
     # AI model (по умолчанию, если не задан в .env)
     ai_model: str = "nex-agi/nex-n2.5-mini:free"
     # Base URL OpenAI-совместимого API (обязателен, задаётся в .env)
@@ -163,6 +168,11 @@ class Config:
                 vosk_mode=vosk_config.get('mode', 'local'),
                 vosk_server_url=vosk_config.get('server', {}).get('url', 'http://127.0.0.1:8000'),
                 vosk_server_timeout=vosk_config.get('server', {}).get('timeout', 300),
+                # faster-whisper настройки
+                whisper_model_size=vosk_config.get('whisper', {}).get('model_size', 'small'),
+                whisper_device=vosk_config.get('whisper', {}).get('device', 'auto'),
+                whisper_compute_type=vosk_config.get('whisper', {}).get('compute_type', 'int8'),
+                whisper_language=vosk_config.get('whisper', {}).get('language') or None,
                 # AI model and API base URL (from .env)
                 ai_model=os.getenv('API_MODEL') or os.getenv('AI_MODEL', 'nex-agi/nex-n2.5-mini:free'),
                 # Поддерживаем оба написания: API_ENDPONT (в .env) и API_ENDPOINT / AI_BASE_URL
