@@ -171,17 +171,14 @@ class VideoProcessor:
                 result.error = "No speech recognized"
                 self.console.print(f"[red]✗[/red] Speech recognition failed: No speech recognized")
                 return result
-            
-            # Step 2.5: Convert WAV to MP3
-            self.console.print("[yellow]→[/yellow] Converting audio to MP3...")
+
+            # Удаляем временно извлечённое аудио (транскрипт уже сохранён)
             try:
-                mp3_path = self.audio_extractor.convert_to_mp3(str(audio_path), video_name)
-                result.audio_path = mp3_path
-                self.console.print("[green][OK][/green] Audio converted to MP3")
-            except AudioExtractionError as e:
-                self.console.print(f"[yellow]![/yellow] MP3 conversion failed: {e}")
-                # Continue with WAV file
-            
+                if (output_dir / "audio" / "audio.wav").exists():
+                    (output_dir / "audio" / "audio.wav").unlink()
+            except Exception as e:
+                self.console.print(f"[yellow]![/yellow] Не удалось удалить временное аудио: {e}")
+
             # Step 3: Detect keywords
             self.console.print("[yellow]→[/yellow] Detecting key moments...")
             keyword_moments = self.keyword_detector.detect(transcript)
