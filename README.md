@@ -145,6 +145,21 @@ python main.py video1.mp4 audio1.mp3 video2.mkv audio2.wav
 
 Режим работы определяется автоматически по расширению файла.
 
+### Выбор движка распознавания (после имени файла: `v` или `w`)
+
+Движок можно указать в конце команды — после списка файлов:
+
+```bash
+python main.py video.mp4 w    # faster-whisper (GPU) — по умолчанию
+python main.py video.mp4 v    # VOSK (CPU)
+python main.py a.mp4 b.mp3 v  # несколько файлов + движок
+```
+
+- `w` — faster-whisper на GPU (CUDA), модель small/int8 ~0.5GB VRAM, влезает в 3GB
+- `v` — VOSK на CPU (локальная модель из `vosk.model_path`)
+
+Без аргумента берётся `vosk.mode` из `config.yaml` (по умолчанию `whisper`).
+
 ### Режимы работы
 
 **Повторная AI обработка** (использует существующую транскрипцию):

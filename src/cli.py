@@ -65,7 +65,20 @@ def parse_arguments() -> argparse.Namespace:
         help="Reprocess AI summary from existing transcript directory"
     )
     
-    return parser.parse_args()
+    # Аргумент выбора движка (v/w) идёт ПОСЛЕ имени файла и передаётся как
+    # engine в namespace (см. main()). Отсекаем его вручную: argparse с
+    # nargs="+" для files не отдаёт ничего опциональному позиционному.
+    args = sys.argv[1:]
+    engine = None
+    if args and args[-1] in ("v", "w"):
+        # движок валиден только если до него есть хотя бы один файл
+        if any(not a.startswith("-") for a in args[:-1]):
+            engine = args[-1]
+            args = args[:-1]
+    
+    ns = parser.parse_args(args)
+    ns.engine = engine
+    return ns
 
 
 def main() -> int:
@@ -91,6 +104,14 @@ def main() -> int:
         # Override output directory if specified
         if args.output_dir:
             config.output_base_dir = args.output_dir
+        
+        # Override speech recognition engine (v = VOSK, w = whisper)
+        if args.engine == "v":
+            config.vosk_mode = "local"
+            console.print("[cyan]Движок распознавания: VOSK (local, CPU) — из аргумента v[/cyan]")
+        elif args.engine == "w":
+            config.vosk_mode = "whisper"
+            console.print("[cyan]Движок распознавания: faster-whisper (GPU) — из аргумента w[/cyan]")
         
         console.print("[green][OK][/green] Configuration loaded successfully")
         
