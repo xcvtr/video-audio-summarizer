@@ -340,7 +340,17 @@ class VideoProcessor:
                     result.error = str(e)
                     self.console.print(f"[red]✗[/red] Speech recognition failed: {e}")
                     return result
-            
+
+            # Удаляем временно конвертированное аудио (транскрипт уже сохранён)
+            try:
+                if temp_wav.exists():
+                    temp_wav.unlink()
+                audio_subdir = temp_wav.parent
+                if audio_subdir.exists() and not any(audio_subdir.iterdir()):
+                    audio_subdir.rmdir()
+            except Exception as e:
+                self.console.print(f"[yellow]![/yellow] Не удалось удалить временное аудио: {e}")
+
             if not transcript:
                 result.error = "No speech recognized"
                 self.console.print(f"[red]✗[/red] Speech recognition failed: No speech recognized")
